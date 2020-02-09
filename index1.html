@@ -1,0 +1,763 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+		body, html {width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+		#allmap{width:100%;height:100%;}
+		p{margin-left:5px; font-size:14px;}
+		#control {
+		    position: absolute;
+		    bottom: 15px;
+		    right: 15px;
+		}
+		.plane {
+		    padding: 5px 8px;
+		    border-radius: 10px;
+		    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+		    font: 14px/12px Tahoma, Verdana, sans-serif;
+		    color: #fefefe;
+		    background: #1e90ff;
+		}
+		.plane div{
+		    height:20px;
+		    line-height:20px;
+		}
+		.button {
+		    margin: 5px;
+		    padding: 13px 23px;
+		    border-radius: 10px;
+		    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+		    font: 16px/14px Tahoma, Verdana, sans-serif;
+		    text-align: center;
+		    color: #fefefe;
+		    background: #1e90ff;
+		}
+	</style>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=3NHq7SGoqTifvGUiEx7xFEzQiOhFrrgM"></script>
+	<title>深圳考点高中（2公里和6公里）缓冲区及其直线距离最近的非高中考点</title>
+</head>
+<body>
+	<div id="allmap"></div>
+	<div id="control" class="plane">
+	  <div><input id='check1' type='checkbox' onclick='clickEvent1()' checked="checked"/>考点2公里范围</div>
+	  <div><input id='check2' type='checkbox' onclick='clickEvent2()' checked="checked"/>考点6公里范围</div>
+	  <div><input id='check3' type='checkbox' onclick='clickEvent3()' checked="checked"/>所有学校文字标注</div>
+	  <div><input id='check4' type='checkbox' onclick='clickEvent4()' checked="checked"/>考点学校文字标注</div>
+	  <div><input id='check5' type='checkbox' onclick='clickEvent5()' checked="checked"/>非考点学校文字标注</div>
+	  <div><input id='check6' type='checkbox' onclick='clickEvent6()' checked="checked"/>不参与学校文字标注</div>
+	  <div><input id='check7' type='checkbox' onclick='clickEvent7()' checked="checked"/>非考点最近考点连线</div>
+	  <div><input id='check8' type='checkbox' onclick='clickEvent8()' checked="checked"/>连线距离标注</div>
+	</div>
+</body>
+</html>
+<script type="text/javascript">
+	var tempCheck1 = document.getElementById('check1').checked;
+	var tempCheck2 = document.getElementById('check2').checked;
+	var tempCheck3 = document.getElementById('check3').checked;
+	var tempCheck4 = document.getElementById('check4').checked;
+	var tempCheck5 = document.getElementById('check5').checked;
+	var tempCheck6 = document.getElementById('check6').checked;
+	var tempCheck7 = document.getElementById('check7').checked;
+	var tempCheck8 = document.getElementById('check8').checked;
+
+	var buffer1Obj = new Array();
+	var buffer2Obj = new Array();
+	var allSchoolM = new Array();
+	var kdSchoolM = new Array();
+	var fkdSchoolM = new Array();
+	var bcySchoolM = new Array();
+	var allSchoolLable = new Array();
+	var kdSchoolLable = new Array();
+	var fkdSchoolLable = new Array();
+	var bcySchoolLable = new Array();
+	var lines = new Array();
+	var lineLable = new Array();
+
+	function clickEvent1(){
+	  tempCheck1 = document.getElementById('check1').checked;
+	  buffer1();
+	}
+	function buffer1(){
+	  if(tempCheck1){
+	    for(var k in buffer1Obj){
+	      map.addOverlay(buffer1Obj[k])
+	    }
+	  }
+	  else{
+	    for(var k in buffer1Obj){
+	      map.removeOverlay(buffer1Obj[k])
+	    }
+	  }
+	}
+
+	function clickEvent2(){
+	  tempCheck2 = document.getElementById('check2').checked;
+	  buffer2();
+	}
+	function buffer2(){
+	  if(tempCheck2){
+	    for(var k in buffer2Obj){
+	      map.addOverlay(buffer2Obj[k])
+	    }
+	  }
+	  else{
+	    for(var k in buffer2Obj){
+	      map.removeOverlay(buffer2Obj[k])
+	    }
+	  }
+	}
+
+	function clickEvent3(){
+	  tempCheck3 = document.getElementById('check3').checked;
+	  document.getElementById('check4').checked = document.getElementById('check3').checked;
+	  document.getElementById('check5').checked = document.getElementById('check3').checked;
+	  document.getElementById('check6').checked = document.getElementById('check3').checked;
+	  tempCheck4 = tempCheck3;
+	  tempCheck5 = tempCheck3;
+	  tempCheck6 = tempCheck3;
+	  allSLable();
+	}
+	function allSLable(){
+	  kdSLable();
+	  fkdSLable();
+	  bcySLable();
+	}
+
+	function clickEvent4(){
+	  tempCheck4 = document.getElementById('check4').checked;
+	  kdSLable();
+	}
+	function kdSLable(){
+	  if(tempCheck4){
+	    for(var k = 0; k< kdSchoolLable.length; k++){
+	      map.removeOverlay(kdSchoolM[k]);
+	      kdSchoolM[k].setLabel(kdSchoolLable[k]);
+	      map.addOverlay(kdSchoolM[k]);
+	    }
+	  }
+	  else{
+	    for(var k = 0; k< kdSchoolLable.length; k++){
+	      map.removeOverlay(kdSchoolM[k]);
+	      kdSchoolM[k].setLabel(null);
+	      map.addOverlay(kdSchoolM[k]);
+	    }
+	  }
+	}
+
+	function clickEvent5(){
+	  tempCheck5 = document.getElementById('check5').checked;
+	  fkdSLable();
+	}
+	function fkdSLable(){
+	  if(tempCheck5){
+	    for(var k = 0; k< fkdSchoolLable.length; k++){
+	      map.removeOverlay(fkdSchoolM[k]);
+	      fkdSchoolM[k].setLabel(fkdSchoolLable[k]);
+	      map.addOverlay(fkdSchoolM[k]);
+	    }
+	  }
+	  else{
+	    for(var k = 0; k< fkdSchoolLable.length; k++){
+	      map.removeOverlay(fkdSchoolM[k]);
+	      fkdSchoolM[k].setLabel(null);
+	      map.addOverlay(fkdSchoolM[k]);
+	    }
+	  }
+	}
+
+	function clickEvent6(){
+	  tempCheck6 = document.getElementById('check6').checked;
+	  bcySLable();
+	}
+	function bcySLable(){
+	  if(tempCheck6){
+	    for(var k = 0; k< bcySchoolLable.length; k++){
+	      map.removeOverlay(bcySchoolM[k]);
+	      bcySchoolM[k].setLabel(bcySchoolLable[k]);
+	      map.addOverlay(bcySchoolM[k]);
+	    }
+	  }
+	  else{
+	    for(var k = 0; k< bcySchoolLable.length; k++){
+	      map.removeOverlay(bcySchoolM[k]);
+	      bcySchoolM[k].setLabel(null);
+	      map.addOverlay(bcySchoolM[k]);
+	    }
+	  }
+	}
+
+	function clickEvent7(){
+	  tempCheck7 = document.getElementById('check7').checked;
+	  linesF();
+	}
+	function linesF(){
+	  if(tempCheck7){
+	    for(var k in lines){
+	      map.addOverlay(lines[k])
+	    }
+	  }
+	  else{
+	    for(var k in lines){
+	      map.removeOverlay(lines[k])
+	    }
+	  }
+	}
+
+	function clickEvent8(){
+	  tempCheck8 = document.getElementById('check8').checked;
+	  lineLableF();
+	}
+	function lineLableF(){
+	  if(tempCheck8){
+	    for(var k in lineLable){
+	      map.addOverlay(lineLable[k])
+	    }
+	  }
+	  else{
+	    for(var k in lineLable){
+	      map.removeOverlay(lineLable[k])
+	    }
+	  }
+	}
+
+	// 百度地图API功能
+	var map = new BMap.Map("allmap");            // 创建Map实例
+	var mPoint = new BMap.Point(114.145973657, 22.6360535462);  
+	map.enableScrollWheelZoom();
+	map.centerAndZoom(mPoint,12);
+	map.setCurrentCity("深圳");          // 设置地图显示的城市 此项是必须设置的
+
+	//添加地图类型控件
+	map.addControl(new BMap.MapTypeControl({
+		mapTypes:[
+            BMAP_NORMAL_MAP,
+            BMAP_HYBRID_MAP
+        ]}));
+        map.addEventListener("tilesloaded",function(){
+          buffer1();
+          buffer2();
+          allSLable();
+          linesF();
+          lineLableF();
+        });
+
+	var schoolInfo = [['1','深圳中学','罗湖','广东省深圳市罗湖区东门街道人民北路深中街18号','考点'],
+['2','深圳市第二实验学校','罗湖','广东省深圳市罗湖区沿河北路2020号','考点'],
+['3','深圳市翠园中学','罗湖','广东省深圳市罗湖区东门北路1016号','考点'],
+['4','深圳市罗湖外语学校','罗湖','广东省深圳市罗湖区莲塘国威路363号','考点'],
+['5','深圳市罗湖高级中学','罗湖','广东省深圳市罗湖区红岭南路金塘街六号','考点'],
+['6','深圳实验学校（中学部）','福田','深圳市福田区百花六路四号','考点'],
+['7','深圳市高级中学','福田','深圳市福田区春田路2号','考点'],
+['8','深圳市福田区红岭中学高中部','福田','广东省深圳市福田区侨香路安托山九路3号','考点'],
+['9','深圳市福田区福田中学','福田','广东省深圳市福田区福田路98号','考点'],
+['10','深圳市福田区外国语高级中学','福田','广东省深圳市福田区益田村西','考点'],
+['11','深圳市福田区梅林中学','福田','广东省深圳市福田区梅华路166号','考点'],
+['12','深圳大学附属中学（高中部）','南山','深圳市南山区前海路0019号','考点'],
+['13','深圳市第二高级中学','南山','深圳市南山区西丽镇创科路3号','考点'],
+['14','深圳市南头中学','南山','广东省深圳市南山区深南大道12034号','考点'],
+['15','深圳市南山区华侨城中学','南山','广东省深圳市南山区白石二道1号','考点'],
+['16','深圳市蛇口育才教育集团育才中学','南山','广东省深圳市南山区蛇口工业六路2号','考点'],
+['17','深圳外国语学校（盐田高中部）','盐田','深圳市盐田区盐田路1号','考点'],
+['18','深圳市盐田高级中学','盐田','广东省深圳市盐田区青蓬路','考点'],
+['19','深圳市宝安中学（集团）','宝安','广东省深圳市宝安区洪浪南路7号','考点'],
+['20','深圳市新安中学（集团）高中部','宝安','深圳市宝安区金科路1号','考点'],
+['21','深圳市宝安第一外国语学校','宝安','广东省深圳市宝安区学子路33号','考点'],
+['22','深圳市松岗中学','宝安','深圳市宝安区松岗街道东方大道26号','考点'],
+['23','深圳市西乡中学','宝安','宝安区兴业路3015号','考点'],
+['24','深圳市沙井中学','宝安','广东省深圳市宝安区沙井街道东岳路1号','考点'],
+['25','深圳市石岩公学','宝安','广东省深圳市宝安区石岩街道育才路8号','考点'],
+['26','深圳市第七高级中学','宝安','广东省深圳市宝安区沙井民主大道33号','考点'],
+['27','深圳市第三高级中学','龙岗','龙岗区如意路398号','考点'],
+['28','深圳市龙岗区龙城高级中学','龙岗','广东省深圳市龙岗区龙城黄阁北路154号','考点'],
+['29','深圳市龙岗区平冈中学','龙岗','广东省深圳市龙岗区龙岗镇龙平东路252号','考点'],
+['30','深圳市龙岗区布吉高级中学','龙岗','广东省深圳市龙岗区南湾街道黄金南路49号','考点'],
+['31','深圳市龙岗区布吉中学','龙岗','龙岗区布吉街道吉华路221号','考点'],
+['32','深圳市龙岗区横岗高级中学','龙岗','龙岗区横岗街道六约社区梧桐路18号','考点'],
+['33','深圳科学高中','龙岗','龙岗区坂田街道环城东路','考点'],
+['34','深圳市龙岗区平湖外国语学校','龙岗','广东省深圳市龙岗区平湖街道新厦大道11号','考点'],
+['35','深圳市龙岗区华中师范大学龙岗附属中学','龙岗','广东省深圳市龙岗区大运新城飞扬路99号','考点'],
+['36','深圳第二外国语学校','龙华','龙华区福城街道大水坑社区','考点'],
+['37','深圳市观澜中学','龙华','广东省深圳市龙华区观湖街道育才路1号','考点'],
+['38','深圳市龙华中学','龙华','龙华区龙华街道公园路1号','考点'],
+['39','深圳市坪山区坪山高级中学','坪山','坪山区锦龙大道东侧沿河路1号','考点'],
+['40','深圳市光明区高级中学','光明','广东省深圳市光明区马田办事处新围路5号','考点'],
+['41','深圳市光明区光明中学','光明','广东省深圳市光明区光明街道碧园路2号','考点'],
+['42','人大附中深圳学校','大鹏','大鹏新区溪坪南路80号','考点'],
+['43','深圳市美术学校','深圳罗湖','广东省深圳市罗湖区北斗路20号','非考点'],
+['44','深圳市明珠学校','深圳罗湖','广东省深圳市罗湖区爱国路2011号','非考点'],
+['45','深圳菁华中英文实验中学','深圳罗湖','广东省深圳市罗湖区文锦南路1006号','非考点'],
+['46','深圳奥斯翰外语学校','深圳罗湖','广东省深圳市罗湖区布心路2040号','非考点'],
+['47','深圳市皇御苑学校','深圳福田','广东省深圳市福田区福田南路7号','非考点'],
+['48','深圳市福景外国语学校','深圳福田','广东省深圳市福田区景田北3街2号','非考点'],
+['49','深圳市永源实验学校','深圳福田','广东省深圳市福田区新沙街2号','非考点'],
+['50','深圳市耀华实验学校','深圳福田','广东省深圳市福田区景田南五街99号','非考点'],
+['51','深圳市云顶学校','深圳福田','广东省深圳市福田区福强路皇岗公园一街','非考点'],
+['52','深圳明德实验学校','深圳福田','广东省深圳市福田区香蜜湖路3010号','非考点'],
+['53','深圳市福田区华强职业技术学校','深圳福田','广东省深圳市福田区红荔西路景田南四街1号','非考点'],
+['54','深圳市开放职业技术学校','深圳福田','广东省深圳市罗湖区桂园街道办事处桂木园社区居民委员会','非考点'],
+['55','深圳市城市学院','深圳福田','深圳市福田区振华路21号','非考点'],
+['56','北大附中深圳南山分校','深圳南山','广东省深圳市南山区月亮湾大道3002号','非考点'],
+['57','深圳（南山）中加学校','深圳南山','广东省深圳市南山区南光路166号','非考点'],
+['58','深圳大学附属中学（高中部）','深圳南山','深圳市南山区前海路0019号','非考点'],
+['59','深圳市南山外国语学校（集团）','深圳南山','广东省深圳市南山区蛇口半岛城邦二期社区内','非考点'],
+['60','深圳市艺术学校','深圳南山','深圳市南山大道3930号（深南大道与北环交叉口东北角）','非考点'],
+['61','深圳市松岗中学新疆班','深圳宝安','深圳市宝安区松岗街道东方大道26号','非考点'],
+['62','深圳东方英文书院','深圳宝安','宝安教育城','非考点'],
+['63','深圳市华胜实验学校','深圳宝安','深圳市宝安区宝安大道5002号','非考点'],
+['64','深圳市富源学校','深圳宝安','深圳市宝安区西乡九围富源教育城','非考点'],
+['65','深圳市桃源居中澳实验学校','深圳宝安','广东省深圳市宝安区西乡街道办前进二路桃源居社区侧','非考点'],
+['66','深圳市华侨（康桥）书院','深圳宝安','深圳市宝安区航城街道洲石路526号','非考点'],
+['67','深圳市明德外语实验学校','深圳宝安','深圳市宝安区沙井街道福和路','非考点'],
+['68','深圳市崛起实验中学','深圳宝安','广东省深圳市宝安区宝城82区','非考点'],
+['69','深圳市松岗中英文实验学校','深圳宝安','宝安区松岗街道松白路松岗段33号-1','非考点'],
+['70','深圳市宝安区翻身实验学校','深圳宝安','深圳市宝安区福海街道塘尾社区建安路；新安街道自由路南一巷25号','非考点'],
+['71','深圳市华一实验学校','深圳宝安','深圳市宝安区沙井市民广场东侧','非考点'],
+['72','深圳市宝安职业技术学校','深圳宝安','广东省深圳市宝安区宝安教育城学子路4号','非考点'],
+['73','深圳市龙岗区布吉街道东升学校校','深圳龙岗','广东省深圳市龙岗区布吉街道西环路','非考点'],
+['74','深圳市龙岗区龙岗街道建文外国语学校','深圳龙岗','广东省深圳市龙岗区宝龙街道沙背坜二路93号','非考点'],
+['75','深圳实验布吉街道承翰学校','深圳龙岗','广东省深圳市龙岗区布吉街道景园路1号','非考点'],
+['76','深圳市龙岗区布吉街道科城实验学校','深圳龙岗','广东省深圳市龙岗区布吉街道吉政路68号','非考点'],
+['77','深圳市体育运动学校','深圳龙岗','深圳市龙岗区龙飞大道501号','非考点'],
+['78','深圳市龙岗区珊蒂泉外国语学校','深圳龙岗','广东省深圳市龙岗区爱南路龙新社区东升北路1号','非考点'],
+['79','深圳市德邦高级中学','深圳龙岗','广东省深圳市龙岗区龙岗街道新生社区仙田路53号','非考点'],
+['80','深圳市龙岗中等专业学校','深圳龙岗','深圳市龙岗区中心城清林路219号','非考点'],
+['81','深圳市龙岗区第二职业技术学校','深圳龙岗','广东省深圳市龙岗区园山街道横坪路269号','非考点'],
+['82','深圳市盐港中学（普高)','深圳盐田','深圳市盐田区东海道30号','非考点'],
+['83','深圳市龙华中英文实验学校','深圳龙华','广东省深圳市龙华区龙华街道和平东路','非考点'],
+['84','深圳市美中学校','深圳龙华','广东省深圳市龙华区观湖街道环观南路103号','非考点'],
+['85','深圳市展华实验学校','深圳龙华','广东省深圳市龙华区龙华街道油松路170号','非考点'],
+['86','深圳市厚德书院','深圳龙华','广东省深圳市龙华区观湖上坑社区观盛五路9号','非考点'],
+['87','深圳外国语学校（龙华高中部）','深圳龙华','深圳市龙华区观澜街道樟坑径新樟路200号','非考点'],
+['88','深圳市格睿特高级中学','深圳龙华','深圳市龙华区观湖街道上坑社区安澜大道11号','非考点'],
+['89','深圳市龙翔学校','深圳坪山','广东省深圳市坪山区马峦街道沙坣社区沙新路68号','非考点'],
+['90','深圳市坪山区坪山高级中学','深圳坪山','广东省深圳市坪山区坪山街道锦龙大道东侧','非考点'],
+['91','深圳市高级中学（东校区）','深圳坪山','广东省深圳市坪山区新区金田路与创景路交汇处西北侧','非考点'],
+['92','深圳市光明书院','深圳光明','广东省深圳市光明区新湖办事处红湖村168号','非考点'],
+['93','深圳市第二职业技术学校','深圳光明','广东省深圳市宝安区光明办事处圳美居民委员会','非考点'],
+['94','深圳市罗湖报名点','深圳罗湖','#N/A','不参与'],
+['95','深圳市第一职业技术学校（普高）','深圳福田','#N/A','不参与'],
+['96','深圳市福田报名点(普高)','深圳福田','#N/A','不参与'],
+['97','深圳市南山报名点','深圳南山','#N/A','不参与'],
+['98','深圳市宝安报名点','深圳宝安','#N/A','不参与'],
+['99','第三高级中学2','深圳龙岗','#N/A','不参与'],
+['100','深圳市龙岗报名点','深圳龙岗','#N/A','不参与'],
+['101','深圳市龙华报名点','深圳龙华','#N/A','不参与'],
+['102','深圳实验学校高中部','深圳福田','深圳市福田区百花六路四号','不参与']];
+	var schoolCoordInfo = [['1','114.128027','22.557726'],
+['2','114.1512151','22.56955368'],
+['3','114.134974','22.56137773'],
+['4','114.1714403','22.56941297'],
+['5','114.1144069','22.54251203'],
+['6','114.094959','22.55961116'],
+['7','114.0256338','22.55143345'],
+['8','114.0188453','22.56545228'],
+['9','114.0838634','22.5430758'],
+['10','114.057526','22.51998999'],
+['11','114.0529085','22.57107464'],
+['12','113.9045555','22.51026359'],
+['13','113.9434179','22.57603484'],
+['14','113.9232921','22.5486121'],
+['15','113.9759622','22.53420712'],
+['16','113.9263106','22.49825419'],
+['17','114.2535842','22.58640223'],
+['18','114.2434302','22.56343791'],
+['19','113.9258611','22.57538234'],
+['20','113.881562','22.55891399'],
+['21','113.8480504','22.65045981'],
+['22','113.873954','22.764291'],
+['23','113.8712239','22.56734884'],
+['24','113.8227557','22.74685504'],
+['25','113.9486411','22.67878872'],
+['26','113.7953709','22.74042379'],
+['27','114.2266859','22.71451407'],
+['28','114.2217129','22.73799443'],
+['29','114.2772926','22.73600792'],
+['30','114.1510199','22.61690851'],
+['31','114.1189578','22.61515827'],
+['32','114.2045264','22.64023598'],
+['33','114.086017','22.63643133'],
+['34','114.1271108','22.71140583'],
+['35','114.2138135','22.70768198'],
+['36','114.020378','22.74144905'],
+['37','114.0718232','22.72452373'],
+['38','114.0435207','22.66512513'],
+['39','114.3318502','22.6895277'],
+['40','113.9126341','22.76986281'],
+['41','113.9526796','22.76239231'],
+['42','114.4256484','22.63335091'],
+['43','114.144105','22.55053167'],
+['44','114.1398138','22.56213037'],
+['45','114.1381984','22.54735617'],
+['46','114.1398624','22.58162432'],
+['47','114.083025','22.53057396'],
+['48','114.0506941','22.56418876'],
+['49','114.0523903','22.53474356'],
+['50','114.0505313','22.55069932'],
+['51','114.0671864','22.5257'],
+['52','114.0319787','22.55416846'],
+['53','114.0547716','22.55109811'],
+['54','114.1199175','22.55286217'],
+['55','114.1013782','22.5503647'],
+['56','113.9164722','22.54433666'],
+['57','113.9346357','22.53182864'],
+['58','113.9045555','22.51026359'],
+['59','113.9380331','22.48711508'],
+['60','113.9306312','22.56129984'],
+['61','113.873954','22.764291'],
+['62','114.1965906','22.65651747'],
+['63','113.8487709','22.61793563'],
+['64','113.868362','22.64782704'],
+['65','113.865721','22.62047898'],
+['66','113.8701955','22.65684248'],
+['67','113.8077432','22.76187785'],
+['68','113.8877637','22.57350204'],
+['69','113.8484897','22.77205134'],
+['70','113.816194','22.71112004'],
+['71','113.8374741','22.72942356'],
+['72','113.849773','22.65409002'],
+['73','114.1115591','22.60560662'],
+['74','114.2985993','22.73828258'],
+['75','114.1370888','22.62923239'],
+['76','114.1298814','22.61817844'],
+['77','114.2166118','22.70861453'],
+['78','114.308985','22.73920703'],
+['79','114.2773803','22.75391056'],
+['80','114.2265236','22.72492559'],
+['81','114.2526941','22.66702911'],
+['82','114.2742416','22.59331445'],
+['83','114.0467679','22.67799466'],
+['84','114.1055102','22.72122383'],
+['85','114.0535486','22.65206109'],
+['86','114.0660491','22.68677818'],
+['87','114.085907','22.69574201'],
+['88','114.0811224','22.68891228'],
+['89','114.3697428','22.69673977'],
+['90','114.3318502','22.6895277'],
+['91','114.4078699','22.69828065'],
+['92','113.9512538','22.82446458'],
+['93','113.8776176','22.5832837'],
+['94','0','0'],
+['95','0','0'],
+['96','0','0'],
+['97','0','0'],
+['98','0','0'],
+['99','0','0'],
+['100','0','0'],
+['101','0','0'],
+['102','114.094959','22.55961116']];
+	var schoolCoordInfo0 = [['1','114.1278901','22.55780666'],
+['2','114.1457866','22.5656795'],
+['3','114.1358538','22.56085553'],
+['4','114.1711021','22.56900002'],
+['5','114.114885','22.54297398'],
+['6','114.0935902','22.56089491'],
+['7','114.1188894','22.5423527'],
+['8','114.0168435','22.56573257'],
+['9','114.0838824','22.54311208'],
+['10','114.0533845','22.51912339'],
+['11','114.0533201','22.57068577'],
+['12','113.9426514','22.53945004'],
+['13','113.9434179','22.57603484'],
+['14','113.9235137','22.54842735'],
+['15','113.9927938','22.54372184'],
+['16','113.9271588','22.49861407'],
+['17','114.25354','22.58785903'],
+['18','114.2561118','22.57995227'],
+['19','113.925564','22.575886'],
+['20','113.8810375','22.55877665'],
+['21','113.8675266','22.5689049'],
+['22','113.8735663','22.76560062'],
+['23','113.8849348','22.58495276'],
+['24','113.823979','22.74805099'],
+['25','113.9479609','22.68096797'],
+['26','113.790765','22.73862714'],
+['27','114.0608061','22.51865349'],
+['28','114.2217129','22.73799443'],
+['29','114.2773641','22.73679773'],
+['30','114.149936','22.61668999'],
+['31','114.1213198','22.6151762'],
+['32','114.1890818','22.64297921'],
+['33','114.0889605','22.64227116'],
+['34','114.1262605','22.71171079'],
+['35','114.2125457','22.70821399'],
+['36','114.0250356','22.73138158'],
+['37','114.071459','22.72370402'],
+['38','114.0214599','22.66265589'],
+['39','114.3351248','22.69007348'],
+['40','113.911435','22.77131197'],
+['41','113.9333431','22.77710264'],
+['42','114.408524','22.64308903'],
+['43','114.1442401','22.55018237'],
+['44','114.140008','22.56254698'],
+['45','114.1382444','22.5471447'],
+['46','114.1388371','22.58188867'],
+['47','114.0801472','22.53059641'],
+['48','114.0509141','22.56466902'],
+['49','114.0537879','22.5351514'],
+['50','114.0500102','22.55098135'],
+['51','114.0671898','22.52506371'],
+['52','114.001121','22.53640813'],
+['53','114.0180051','22.54805576'],
+['54','114.116429','22.55000296'],
+['55','113.9205446','22.57220882'],
+['56','113.9173517','22.54535609'],
+['57','113.9348478','22.53477736'],
+['58','113.9426514','22.53945004'],
+['59','113.9583414','22.52860921'],
+['60','114.100447','22.55896723'],
+['61','113.8735663','22.76560062'],
+['62','113.8502114','22.65584659'],
+['63','113.8492639','22.61816966'],
+['64','113.868279','22.64797197'],
+['65','113.8699431','22.61702936'],
+['66','113.8695397','22.65623589'],
+['67','113.8086101','22.7591805'],
+['68','113.8848407','22.57241565'],
+['69','113.8619667','22.77584073'],
+['70','113.8006397','22.7096764'],
+['71','113.8403103','22.73016432'],
+['72','113.8483711','22.64865147'],
+['73','114.1105781','22.60974202'],
+['74','114.2985993','22.73828258'],
+['75','114.1175614','22.62801385'],
+['76','114.130422','22.618878'],
+['77','114.2155386','22.70758579'],
+['78','114.3082433','22.73928469'],
+['79','114.2765565','22.75451088'],
+['80','114.2264335','22.72427164'],
+['81','114.2314691','22.66350807'],
+['82','114.2737843','22.59386559'],
+['83','114.0374504','22.66145094'],
+['84','114.059865','22.69813179'],
+['85','114.0503053','22.64154835'],
+['86','114.072636','22.68488212'],
+['87','114.0858163','22.69404347'],
+['88','114.082585','22.68732603'],
+['89','114.3705574','22.69731775'],
+['90','114.3351248','22.69007348'],
+['91','114.4050749','22.70004908'],
+['92','113.9425601','22.75446588'],
+['93','114.0805068','22.5731445'],
+['94','114.1374319','22.55448488'],
+['95','114.0787593','22.54910851'],
+['96','114.061547','22.52846591'],
+['97','113.9814497','22.62476868'],
+['98','113.9814497','22.62476868'],
+['99','114.0608061','22.51865349'],
+['100','114.2544549','22.72601655'],
+['101','114.0485288','22.75759665'],
+['102','114.0935902','22.56089491']];
+
+	for(var i = 0; i< schoolInfo.length; i++){
+	  var sPoint = new BMap.Point(schoolCoordInfo0[i][1], schoolCoordInfo0[i][2]);
+	  var circleR = new BMap.Circle(sPoint,2000,{fillColor:"red", strokeWeight: 1 ,fillOpacity: 0.3, strokeOpacity: 0.3});
+	  var circleB = new BMap.Circle(sPoint,6000,{fillColor:"blue", strokeWeight: 1 ,fillOpacity: 0.3, strokeOpacity: 0.3});
+	  
+	  //设置marker图标
+	  var marker = new BMap.Marker(sPoint);// 创建标注
+	  // 创建文字标注
+	  var label = new BMap.Label(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")",{offset:new BMap.Size(20,-10)});
+	  label.setStyle({
+	    color : "red",
+	    fontSize : "12px",
+	    height : "20px",
+	    lineHeight : "20px",
+	    fontFamily:"微软雅黑"
+	  });
+	  if(schoolInfo[i][4] == "考点"){
+	    label = new BMap.Label(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")",{offset:new BMap.Size(25,-20)});
+	    label.setStyle({
+	      color : "red",
+	      fontSize : "12px",
+	      height : "20px",
+	      lineHeight : "20px",
+	      fontFamily:"微软雅黑"
+	    });
+		//添加缓冲区
+	    //map.addOverlay(circleB);
+	    buffer2Obj.push(circleB);
+	    //map.addOverlay(circleR);
+	    buffer1Obj.push(circleR);
+	    marker = new BMap.Marker(sPoint, {
+	      // 指定Marker的icon属性为Symbol
+	      icon: new BMap.Symbol(BMap_Symbol_SHAPE_POINT, {
+	        scale: 1.5,//图标缩放大小
+	        fillColor: "red",//填充颜色
+	        fillOpacity: 0.8//填充透明度
+	      })
+	    });
+	    kdSchoolLable.push(label);
+	    kdSchoolM.push(marker);
+	  }
+	  else if(schoolInfo[i][4] == "非考点"){
+	    label = new BMap.Label(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")",{offset:new BMap.Size(20,-10)});
+	    label.setStyle({
+	      color : "#0000FF",
+	      fontSize : "12px",
+	      height : "20px",
+	      lineHeight : "20px",
+	      fontFamily:"微软雅黑"
+	    });
+	    
+	    //添加非考点位置
+	    marker = new BMap.Marker(sPoint, {
+	      // 指定Marker的icon属性为Symbol
+	      icon: new BMap.Symbol(BMap_Symbol_SHAPE_POINT, {
+	        scale: 1,//图标缩放大小
+	        fillColor: "#666666",//填充颜色
+	        fillOpacity: 0.8//填充透明度
+	      })
+	    });
+	    fkdSchoolLable.push(label);
+	    fkdSchoolM.push(marker);
+
+	    //添加非考点离考点最近的线
+	    var ePoint = null;
+	    var lDistance = 9999999;
+	    for(var j = 0; j< schoolInfo.length; j++){
+	      if(schoolInfo[j][4] == "考点"){
+	        var tempPoint = new BMap.Point(schoolCoordInfo0[j][1], schoolCoordInfo0[j][2]);
+	        var tempDistance = map.getDistance(sPoint,tempPoint);
+	        if(tempDistance < lDistance){
+	          ePoint = tempPoint;
+	          lDistance = tempDistance;
+	        }
+	      }
+	    }
+	    var polyline = new BMap.Polyline([sPoint,ePoint], {strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5});//定义折线
+	    //map.addOverlay(polyline);//添加折线到地图上
+	    lines.push(polyline);
+	    //添加非考点离考点最近的线的长度
+	    if(lDistance > 0){
+	      var pixelSPoint=map.pointToPixel(sPoint);
+	      var pixelEPoint=map.pointToPixel(ePoint);
+	      var tempCPX = (pixelSPoint.x + pixelEPoint.x)/2;
+	      var tempCPY = (pixelSPoint.y + pixelEPoint.y)/2;
+	      var tempCPoint = map.pixelToPoint(new BMap.Pixel(tempCPX,tempCPY));
+	      //var markertemp = new BMap.Marker(tempCPoint, {
+	      //  // 指定Marker的icon属性为Symbol
+	     //   icon: new BMap.Symbol(BMap_Symbol_SHAPE_POINT, {
+	     //     scale: 1,//图标缩放大小
+	     //    fillColor: "#FFFF00",//填充颜色
+	     //     fillOpacity: 0.8//填充透明度
+	     //   })
+	     // });
+	     // map.addOverlay(markertemp);
+	      var opts = {
+	        position : tempCPoint,// 指定文本标注所在的地理位置
+	        offset   : new BMap.Size(0, -15)    //设置文本偏移量
+	      }
+	      var lineLabel = new BMap.Label(lDistance.toFixed(2)+'米', opts);  // 创建文本标注对象
+	      lineLabel.setStyle({
+	        color : "#3C3C3C",
+	        fontSize : "8px",
+	        height : "12px",
+	        lineHeight : "12px",
+	        fontFamily:"微软雅黑"
+	      });
+	      //map.addOverlay(lineLabel);
+	      lineLable.push(lineLabel);
+	    }
+	    //polyline.onmouseover = function(){
+	      
+	    //}
+
+	    //polyline.onmouseout = function(){
+	      
+	    //}
+	  }
+	  else{
+	    label = new BMap.Label(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")",{offset:new BMap.Size(15,-5)});
+	    label.setStyle({
+	      color : "grey",
+	      fontSize : "12px",
+	      height : "20px",
+	      lineHeight : "20px",
+	      fontFamily:"微软雅黑"
+	    });
+	    //添加缓冲区
+	    //map.addOverlay(circleB);
+	    //map.addOverlay(circleR);
+	    //添加其他考点位置
+	    marker = new BMap.Marker(sPoint, {
+	      // 指定Marker的icon属性为Symbol
+	      icon: new BMap.Symbol(BMap_Symbol_SHAPE_POINT, {
+	        scale: 0.75,//图标缩放大小
+	        fillColor: "#FFFFFF",//填充颜色
+	        fillOpacity: 0.8//填充透明度
+	      })
+	    });
+	    bcySchoolLable.push(label);
+	    bcySchoolM.push(marker);
+	  }
+
+	  marker.setTitle(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")");
+	  //marker.setLabel(label);
+	  map.addOverlay(marker);// 将标注添加到地图中
+	  allSchoolLable.push(label);
+	  allSchoolM.push(marker);
+	  
+	  //marker.onmouseover = function(){
+	  //  marker.setLabel(label);
+	  //}
+
+	  //marker.onmouseout = function(){
+	  //  marker.setLabel(null);
+	  //}
+
+
+    // 复杂的自定义覆盖物
+    //function ComplexCustomOverlay(point, text){
+    //  this._point = point;
+    //  this._text = text;
+    //}
+    //ComplexCustomOverlay.prototype = new BMap.Overlay();
+    //ComplexCustomOverlay.prototype.initialize = function(map){
+    //  this._map = map;
+    //  var div = this._div = document.createElement("div");
+    //  div.style.position = "absolute";
+    //  div.style.zIndex = BMap.Overlay.getZIndex(this._point.lat);
+    //  div.style.backgroundColor = "#EE5D5B";
+    //  div.style.border = "1px solid #BC3B3A";
+    //  div.style.color = "white";
+    //  div.style.height = "18px";
+    //  div.style.padding = "2px";
+    //  div.style.lineHeight = "18px";
+    //  div.style.whiteSpace = "nowrap";
+    //  div.style.MozUserSelect = "none";
+    //  div.style.fontSize = "12px"
+    //  var span = this._span = document.createElement("span");
+    //  div.appendChild(span);
+    //  span.appendChild(document.createTextNode(this._text));      
+    //  var that = this;
+
+    //  var arrow = this._arrow = document.createElement("div");
+    //  arrow.style.background = "url(http://map.baidu.com/fwmap/upload/r/map/fwmap/static/house/images/label.png) no-repeat";
+    //  arrow.style.position = "absolute";
+    //  arrow.style.width = "11px";
+    //  arrow.style.height = "10px";
+    //  arrow.style.top = "22px";
+    //  arrow.style.left = "10px";
+    //  arrow.style.overflow = "hidden";
+    //  div.appendChild(arrow);
+     
+    //  map.getPanes().labelPane.appendChild(div);
+      
+    //  return div;
+    //}
+    //ComplexCustomOverlay.prototype.draw = function(){
+    //  var map = this._map;
+    //  var pixel = map.pointToOverlayPixel(this._point);
+    //  this._div.style.left = pixel.x - parseInt(this._arrow.style.left) + "px";
+    //  this._div.style.top  = pixel.y - 30 + "px";
+    //}
+    //var txt = schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")";
+        
+    //var myCompOverlay = new ComplexCustomOverlay(sPoint, txt);
+
+    //map.addOverlay(myCompOverlay);
+	}
+
+</script>
