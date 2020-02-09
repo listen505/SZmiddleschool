@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -7,15 +7,221 @@
 		body, html {width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
 		#allmap{width:100%;height:100%;}
 		p{margin-left:5px; font-size:14px;}
+		#control {
+		    position: absolute;
+		    bottom: 15px;
+		    right: 15px;
+		}
+		.plane {
+		    padding: 5px 8px;
+		    border-radius: 10px;
+		    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+		    font: 14px/12px Tahoma, Verdana, sans-serif;
+		    color: #fefefe;
+		    background: #1e90ff;
+		}
+		.plane div{
+		    height:20px;
+		    line-height:20px;
+		}
+		.button {
+		    margin: 5px;
+		    padding: 13px 23px;
+		    border-radius: 10px;
+		    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+		    font: 16px/14px Tahoma, Verdana, sans-serif;
+		    text-align: center;
+		    color: #fefefe;
+		    background: #1e90ff;
+		}
 	</style>
 	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=3NHq7SGoqTifvGUiEx7xFEzQiOhFrrgM"></script>
-	<title>深圳中学缓冲区范围</title>
+	<title>深圳考点高中（2公里和6公里）缓冲区及其直线距离最近的非高中考点</title>
 </head>
 <body>
 	<div id="allmap"></div>
+	<div id="control" class="plane">
+	  <div><input id='check1' type='checkbox' onclick='clickEvent1()' checked="checked"/>考点2公里范围</div>
+	  <div><input id='check2' type='checkbox' onclick='clickEvent2()' checked="checked"/>考点6公里范围</div>
+	  <div><input id='check3' type='checkbox' onclick='clickEvent3()' checked="checked"/>所有学校文字标注</div>
+	  <div><input id='check4' type='checkbox' onclick='clickEvent4()' checked="checked"/>考点学校文字标注</div>
+	  <div><input id='check5' type='checkbox' onclick='clickEvent5()' checked="checked"/>非考点学校文字标注</div>
+	  <div><input id='check6' type='checkbox' onclick='clickEvent6()' checked="checked"/>不参与学校文字标注</div>
+	  <div><input id='check7' type='checkbox' onclick='clickEvent7()' checked="checked"/>非考点最近考点连线</div>
+	  <div><input id='check8' type='checkbox' onclick='clickEvent8()' checked="checked"/>连线距离标注</div>
+	</div>
 </body>
 </html>
 <script type="text/javascript">
+	var tempCheck1 = document.getElementById('check1').checked;
+	var tempCheck2 = document.getElementById('check2').checked;
+	var tempCheck3 = document.getElementById('check3').checked;
+	var tempCheck4 = document.getElementById('check4').checked;
+	var tempCheck5 = document.getElementById('check5').checked;
+	var tempCheck6 = document.getElementById('check6').checked;
+	var tempCheck7 = document.getElementById('check7').checked;
+	var tempCheck8 = document.getElementById('check8').checked;
+
+	var buffer1Obj = new Array();
+	var buffer2Obj = new Array();
+	var allSchoolM = new Array();
+	var kdSchoolM = new Array();
+	var fkdSchoolM = new Array();
+	var bcySchoolM = new Array();
+	var allSchoolLable = new Array();
+	var kdSchoolLable = new Array();
+	var fkdSchoolLable = new Array();
+	var bcySchoolLable = new Array();
+	var lines = new Array();
+	var lineLable = new Array();
+
+	function clickEvent1(){
+	  tempCheck1 = document.getElementById('check1').checked;
+	  buffer1();
+	}
+	function buffer1(){
+	  if(tempCheck1){
+	    for(var k in buffer1Obj){
+	      map.addOverlay(buffer1Obj[k])
+	    }
+	  }
+	  else{
+	    for(var k in buffer1Obj){
+	      map.removeOverlay(buffer1Obj[k])
+	    }
+	  }
+	}
+
+	function clickEvent2(){
+	  tempCheck2 = document.getElementById('check2').checked;
+	  buffer2();
+	}
+	function buffer2(){
+	  if(tempCheck2){
+	    for(var k in buffer2Obj){
+	      map.addOverlay(buffer2Obj[k])
+	    }
+	  }
+	  else{
+	    for(var k in buffer2Obj){
+	      map.removeOverlay(buffer2Obj[k])
+	    }
+	  }
+	}
+
+	function clickEvent3(){
+	  tempCheck3 = document.getElementById('check3').checked;
+	  document.getElementById('check4').checked = document.getElementById('check3').checked;
+	  document.getElementById('check5').checked = document.getElementById('check3').checked;
+	  document.getElementById('check6').checked = document.getElementById('check3').checked;
+	  tempCheck4 = tempCheck3;
+	  tempCheck5 = tempCheck3;
+	  tempCheck6 = tempCheck3;
+	  allSLable();
+	}
+	function allSLable(){
+	  kdSLable();
+	  fkdSLable();
+	  bcySLable();
+	}
+
+	function clickEvent4(){
+	  tempCheck4 = document.getElementById('check4').checked;
+	  kdSLable();
+	}
+	function kdSLable(){
+	  if(tempCheck4){
+	    for(var k = 0; k< kdSchoolLable.length; k++){
+	      map.removeOverlay(kdSchoolM[k]);
+	      kdSchoolM[k].setLabel(kdSchoolLable[k]);
+	      map.addOverlay(kdSchoolM[k]);
+	    }
+	  }
+	  else{
+	    for(var k = 0; k< kdSchoolLable.length; k++){
+	      map.removeOverlay(kdSchoolM[k]);
+	      kdSchoolM[k].setLabel(null);
+	      map.addOverlay(kdSchoolM[k]);
+	    }
+	  }
+	}
+
+	function clickEvent5(){
+	  tempCheck5 = document.getElementById('check5').checked;
+	  fkdSLable();
+	}
+	function fkdSLable(){
+	  if(tempCheck5){
+	    for(var k = 0; k< fkdSchoolLable.length; k++){
+	      map.removeOverlay(fkdSchoolM[k]);
+	      fkdSchoolM[k].setLabel(fkdSchoolLable[k]);
+	      map.addOverlay(fkdSchoolM[k]);
+	    }
+	  }
+	  else{
+	    for(var k = 0; k< fkdSchoolLable.length; k++){
+	      map.removeOverlay(fkdSchoolM[k]);
+	      fkdSchoolM[k].setLabel(null);
+	      map.addOverlay(fkdSchoolM[k]);
+	    }
+	  }
+	}
+
+	function clickEvent6(){
+	  tempCheck6 = document.getElementById('check6').checked;
+	  bcySLable();
+	}
+	function bcySLable(){
+	  if(tempCheck6){
+	    for(var k = 0; k< bcySchoolLable.length; k++){
+	      map.removeOverlay(bcySchoolM[k]);
+	      bcySchoolM[k].setLabel(bcySchoolLable[k]);
+	      map.addOverlay(bcySchoolM[k]);
+	    }
+	  }
+	  else{
+	    for(var k = 0; k< bcySchoolLable.length; k++){
+	      map.removeOverlay(bcySchoolM[k]);
+	      bcySchoolM[k].setLabel(null);
+	      map.addOverlay(bcySchoolM[k]);
+	    }
+	  }
+	}
+
+	function clickEvent7(){
+	  tempCheck7 = document.getElementById('check7').checked;
+	  linesF();
+	}
+	function linesF(){
+	  if(tempCheck7){
+	    for(var k in lines){
+	      map.addOverlay(lines[k])
+	    }
+	  }
+	  else{
+	    for(var k in lines){
+	      map.removeOverlay(lines[k])
+	    }
+	  }
+	}
+
+	function clickEvent8(){
+	  tempCheck8 = document.getElementById('check8').checked;
+	  lineLableF();
+	}
+	function lineLableF(){
+	  if(tempCheck8){
+	    for(var k in lineLable){
+	      map.addOverlay(lineLable[k])
+	    }
+	  }
+	  else{
+	    for(var k in lineLable){
+	      map.removeOverlay(lineLable[k])
+	    }
+	  }
+	}
+
 	// 百度地图API功能
 	var map = new BMap.Map("allmap");            // 创建Map实例
 	var mPoint = new BMap.Point(114.145973657, 22.6360535462);  
@@ -29,6 +235,13 @@
             BMAP_NORMAL_MAP,
             BMAP_HYBRID_MAP
         ]}));
+        map.addEventListener("tilesloaded",function(){
+          buffer1();
+          buffer2();
+          allSLable();
+          linesF();
+          lineLableF();
+        });
 
 	var schoolInfo = [['1','深圳中学','罗湖','广东省深圳市罗湖区东门街道人民北路深中街18号','考点'],
 ['2','深圳市第二实验学校','罗湖','广东省深圳市罗湖区沿河北路2020号','考点'],
@@ -354,7 +567,7 @@
 	    fontFamily:"微软雅黑"
 	  });
 	  if(schoolInfo[i][4] == "考点"){
-	    label = new BMap.Label(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")",{offset:new BMap.Size(30,-20)});
+	    label = new BMap.Label(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")",{offset:new BMap.Size(25,-20)});
 	    label.setStyle({
 	      color : "red",
 	      fontSize : "12px",
@@ -363,9 +576,10 @@
 	      fontFamily:"微软雅黑"
 	    });
 		//添加缓冲区
-	    map.addOverlay(circleB);
-	    map.addOverlay(circleR);
-		
+	    //map.addOverlay(circleB);
+	    buffer2Obj.push(circleB);
+	    //map.addOverlay(circleR);
+	    buffer1Obj.push(circleR);
 	    marker = new BMap.Marker(sPoint, {
 	      // 指定Marker的icon属性为Symbol
 	      icon: new BMap.Symbol(BMap_Symbol_SHAPE_POINT, {
@@ -374,25 +588,30 @@
 	        fillOpacity: 0.8//填充透明度
 	      })
 	    });
+	    kdSchoolLable.push(label);
+	    kdSchoolM.push(marker);
 	  }
 	  else if(schoolInfo[i][4] == "非考点"){
 	    label = new BMap.Label(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")",{offset:new BMap.Size(20,-10)});
 	    label.setStyle({
-	      color : "grey",
+	      color : "#0000FF",
 	      fontSize : "12px",
 	      height : "20px",
 	      lineHeight : "20px",
 	      fontFamily:"微软雅黑"
 	    });
 	    
+	    //添加非考点位置
 	    marker = new BMap.Marker(sPoint, {
 	      // 指定Marker的icon属性为Symbol
 	      icon: new BMap.Symbol(BMap_Symbol_SHAPE_POINT, {
 	        scale: 1,//图标缩放大小
-	        fillColor: "#999999",//填充颜色
+	        fillColor: "#666666",//填充颜色
 	        fillOpacity: 0.8//填充透明度
 	      })
 	    });
+	    fkdSchoolLable.push(label);
+	    fkdSchoolM.push(marker);
 
 	    //添加非考点离考点最近的线
 	    var ePoint = null;
@@ -408,7 +627,8 @@
 	      }
 	    }
 	    var polyline = new BMap.Polyline([sPoint,ePoint], {strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5});//定义折线
-	    map.addOverlay(polyline);//添加折线到地图上
+	    //map.addOverlay(polyline);//添加折线到地图上
+	    lines.push(polyline);
 	    //添加非考点离考点最近的线的长度
 	    if(lDistance > 0){
 	      var pixelSPoint=map.pointToPixel(sPoint);
@@ -437,7 +657,8 @@
 	        lineHeight : "12px",
 	        fontFamily:"微软雅黑"
 	      });
-	      map.addOverlay(lineLabel);   
+	      //map.addOverlay(lineLabel);
+	      lineLable.push(lineLabel);
 	    }
 	    //polyline.onmouseover = function(){
 	      
@@ -468,11 +689,15 @@
 	        fillOpacity: 0.8//填充透明度
 	      })
 	    });
+	    bcySchoolLable.push(label);
+	    bcySchoolM.push(marker);
 	  }
 
-	  map.addOverlay(marker);// 将标注添加到地图中
 	  marker.setTitle(schoolInfo[i][1] + "("+ schoolInfo[i][4] + ")");
-	  marker.setLabel(label);
+	  //marker.setLabel(label);
+	  map.addOverlay(marker);// 将标注添加到地图中
+	  allSchoolLable.push(label);
+	  allSchoolM.push(marker);
 	  
 	  //marker.onmouseover = function(){
 	  //  marker.setLabel(label);
@@ -534,4 +759,5 @@
 
     //map.addOverlay(myCompOverlay);
 	}
+
 </script>
